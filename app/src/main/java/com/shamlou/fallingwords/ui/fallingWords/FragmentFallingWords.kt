@@ -2,10 +2,12 @@ package com.shamlou.fallingwords.ui.fallingWords
 
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -54,6 +56,8 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
         binding.buttonCorrect.setOnClickListener {
             startTimer()
         }
+        setupTimeNumberPicker()
+        setupSpeedNumberPicker()
     }
 
     private fun observeViewModel() {
@@ -84,6 +88,29 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                 }
             }
         }
+        lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.viewState.collect {
+
+                    binding.viewGroupGaming.isVisible = it is ViewState.Gaming
+
+                    when(it){
+                        is ViewState.SetUpGame -> {
+
+
+                        }
+                        is ViewState.Gaming -> {
+
+
+                        }
+                        is ViewState.Result -> {
+
+
+                        }
+                    }
+                }
+            }
+        }
     }
 
     //starts the counter with value of [timeLeft] in viewModel
@@ -102,4 +129,38 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
             }
         }.start()
     }
+
+    private fun setupTimeNumberPicker() {
+        val values = GameTime.values().map { it.title }.toTypedArray()
+        with(binding.numberPickerTime){
+            minValue = 0
+            maxValue = values.size - 1
+            displayedValues = values
+            wrapSelectorWheel = true
+            setOnValueChangedListener { picker, oldVal, newVal ->
+                val text = "Changed from " + values[oldVal] + " to " + values[newVal]
+                Log.d("TESTEST", GameTime.values()[newVal].name)
+                viewModel.timeSelected(GameTime.values()[newVal])
+            }
+            value = values.size-1
+        }
+
+    }
+    private fun setupSpeedNumberPicker() {
+        val values = Speed.values().map { it.title }.toTypedArray()
+        with(binding.numberPickerSpeed){
+            minValue = 0
+            maxValue = values.size - 1
+            displayedValues = values
+            wrapSelectorWheel = true
+            setOnValueChangedListener { picker, oldVal, newVal ->
+                val text = "Changed from " + values[oldVal] + " to " + values[newVal]
+                Log.d("TESTEST", GameTime.values()[newVal].name)
+                viewModel.timeSelected(GameTime.values()[newVal])
+            }
+            value = values.size-1
+        }
+
+    }
+
 }
