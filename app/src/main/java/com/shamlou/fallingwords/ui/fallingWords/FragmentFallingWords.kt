@@ -2,11 +2,9 @@ package com.shamlou.fallingwords.ui.fallingWords
 
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -67,11 +65,6 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.allWords.collect {
 
-                    Toast.makeText(
-                        requireContext(),
-                        "${it.data?.size} - ${it.status.name}",
-                        Toast.LENGTH_SHORT
-                    ).show()
                 }
             }
         }
@@ -90,14 +83,22 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
         }
         lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.startGameButtonEnable.collect {
+
+                    binding.buttonStartGame.isEnabled = it
+                }
+            }
+        }
+        lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.viewState.collect {
 
                     binding.viewGroupGaming.isVisible = it is ViewState.Gaming
-
+                    binding.viewGroupStartGame.isVisible = it is ViewState
                     when(it){
                         is ViewState.SetUpGame -> {
 
-
+                            binding.textViewGameInfo.text = "game speed : ${it.gameSpeed.title} \n game time : ${it.gameTime.title}"
                         }
                         is ViewState.Gaming -> {
 
@@ -137,9 +138,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
             maxValue = values.size - 1
             displayedValues = values
             wrapSelectorWheel = true
-            setOnValueChangedListener { picker, oldVal, newVal ->
-                val text = "Changed from " + values[oldVal] + " to " + values[newVal]
-                Log.d("TESTEST", GameTime.values()[newVal].name)
+            setOnValueChangedListener { _, _, newVal ->
                 viewModel.timeSelected(GameTime.values()[newVal])
             }
             value = values.size-1
@@ -147,16 +146,14 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
 
     }
     private fun setupSpeedNumberPicker() {
-        val values = Speed.values().map { it.title }.toTypedArray()
+        val values = GameSpeed.values().map { it.title }.toTypedArray()
         with(binding.numberPickerSpeed){
             minValue = 0
             maxValue = values.size - 1
             displayedValues = values
             wrapSelectorWheel = true
-            setOnValueChangedListener { picker, oldVal, newVal ->
-                val text = "Changed from " + values[oldVal] + " to " + values[newVal]
-                Log.d("TESTEST", GameTime.values()[newVal].name)
-                viewModel.timeSelected(GameTime.values()[newVal])
+            setOnValueChangedListener { _, _, newVal ->
+                viewModel.speedSelected(GameSpeed.values()[newVal])
             }
             value = values.size-1
         }

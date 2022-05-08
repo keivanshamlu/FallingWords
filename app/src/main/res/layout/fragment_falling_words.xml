@@ -10,10 +10,12 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:focusable="false"
+        android:layout_marginTop="12dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintStart_toEndOf="@+id/number_picker_speed"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
     <NumberPicker
         android:id="@+id/number_picker_speed"
@@ -21,9 +23,11 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:focusable="false"
+        android:layout_marginTop="12dp"
         app:layout_constraintEnd_toStartOf="@+id/number_picker_time"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.constraintlayout.widget.Group
@@ -32,6 +36,14 @@
         android:layout_height="wrap_content"
         android:visibility="gone"
         app:constraint_referenced_ids="button_wrong,button_correct,text_view_count_down" />
+
+
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/view_group_start_game"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:constraint_referenced_ids="text_view_game_speed,text_view_game_time,number_picker_speed,number_picker_time,button_start_game,text_view_game_info" />
 
 
     <com.google.android.material.button.MaterialButton
@@ -72,9 +84,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/select_game_speed"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:layout_marginBottom="12dp"
+        app:layout_constraintBottom_toTopOf="@id/number_picker_speed"
         app:layout_constraintEnd_toEndOf="@+id/number_picker_speed"
-        app:layout_constraintStart_toStartOf="@id/number_picker_speed"
-        app:layout_constraintTop_toBottomOf="@+id/number_picker_speed" />
+        app:layout_constraintStart_toStartOf="@id/number_picker_speed" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/text_view_count_down"
@@ -88,8 +103,22 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/select_game_time"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:layout_marginTop="40dp"
+        android:layout_marginBottom="12dp"
         app:layout_constraintEnd_toEndOf="@+id/number_picker_time"
         app:layout_constraintStart_toStartOf="@id/number_picker_time"
-        app:layout_constraintTop_toBottomOf="@+id/number_picker_time" />
+        app:layout_constraintBottom_toTopOf="@+id/number_picker_time"/>
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/text_view_game_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toTopOf="@+id/button_start_game"
+        app:layout_constraintStart_toStartOf="@+id/button_start_game"
+        app:layout_constraintEnd_toEndOf="@+id/button_start_game"
+        android:layout_marginBottom="12dp"
+        />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
