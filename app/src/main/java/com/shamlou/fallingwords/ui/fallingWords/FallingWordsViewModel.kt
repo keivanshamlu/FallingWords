@@ -107,6 +107,36 @@ class FallingWordsViewModel(
             _allWords.value = it
         }
     }
+
+    fun currectClicked(){
+
+        (_viewState.value as? ViewState.Gaming)?.let { lastValue ->
+
+            val answerIsCorrect = lastValue.shuffledWords[lastValue.currentIndex].isCorrect
+            addAnswer(answerIsCorrect)
+        }
+    }
+    fun wrongClicked(){
+
+        (_viewState.value as? ViewState.Gaming)?.let { lastValue ->
+
+            val answerIsCorrect = lastValue.shuffledWords[lastValue.currentIndex].isCorrect.not()
+            addAnswer(answerIsCorrect)
+        }
+    }
+
+    private fun addAnswer(answerIsCorrect: Boolean){
+
+        (_viewState.value as? ViewState.Gaming)?.let { lastValue ->
+
+            _viewState.tryEmit(lastValue.copy(currentIndex = lastValue.currentIndex+1 ,
+                currectAnswers = if(answerIsCorrect) lastValue.currectAnswers+1 else lastValue.currectAnswers,
+                wrongAnswes = if(answerIsCorrect) lastValue.wrongAnswes else lastValue.wrongAnswes+1,
+            ))
+            _startAnimEvent.tryEmit(Event(Pair(lastValue.shuffledWords[lastValue.currentIndex+1], lastValue.speed)))
+        }
+    }
+
 }
 
 sealed class ViewState() {
@@ -119,7 +149,9 @@ sealed class ViewState() {
     data class Gaming(
         val shuffledWords : List<ResponseWord>,
         val speed: GameSpeed,
-        val currentIndex: Int = 0
+        val currentIndex: Int = 0,
+        val currectAnswers: Int = 0,
+        val wrongAnswes: Int = 0
     ) : ViewState()
     object Result : ViewState()
 }

@@ -6,6 +6,7 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -24,6 +25,8 @@ import java.util.*
 
 
 class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
+
+    private val animatorSet = AnimatorSet()
 
     private val viewModel: FallingWordsViewModel by viewModel()
 
@@ -57,7 +60,13 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
     private fun setUpView() {
 
         binding.buttonCorrect.setOnClickListener {
+            animatorSet.cancel()
+            viewModel.currectClicked()
+        }
 
+        binding.buttonWrong.setOnClickListener {
+            animatorSet.cancel()
+            viewModel.wrongClicked()
         }
         binding.buttonStartGame.setOnClickListener {
             viewModel.startGameClicked()
@@ -103,16 +112,15 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                 viewModel.startAnimEvent.collect {
                     it?.getContentIfNotHandled()?.let {
 
-                        binding.test.text = it.first.text_spa
-                        binding.testCenter.text = it.first.text_eng
+                        binding.textViewMovingText.text = it.first.text_spa
+                        binding.textViewFixed.text = it.first.text_eng
 
-                        val animatorSet = AnimatorSet()
                         animatorSet.playSequentially(
                             ObjectAnimator
-                                .ofFloat(binding.test, "translationY", binding.root.height.toFloat() - binding.test.height)
+                                .ofFloat(binding.textViewMovingText, "translationY", binding.root.height.toFloat() - binding.textViewMovingText.height)
                                 .setDuration(it.second.duration),
                             ObjectAnimator
-                                .ofFloat(binding.test, "translationY", 0f)
+                                .ofFloat(binding.textViewMovingText, "translationY", 0f)
                                 .setDuration(0)
                         )
                         animatorSet.addListener(object : Animator.AnimatorListener {
@@ -121,11 +129,12 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
 
                             override fun onAnimationEnd(p0: Animator?) {
 
-
+                                animatorSet.removeAllListeners()
                                 viewModel.animationFinished()
                             }
 
                             override fun onAnimationCancel(p0: Animator?) {
+                                Log.d("TESTEST", "cancle")
                             }
 
                             override fun onAnimationRepeat(p0: Animator?) {
