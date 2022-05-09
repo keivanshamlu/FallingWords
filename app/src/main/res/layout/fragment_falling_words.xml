@@ -54,8 +54,8 @@
         android:id="@+id/view_group_gaming"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="visible"
-        app:constraint_referenced_ids="button_correct,button_wrong,text_view_count_down" />
+        android:visibility="gone"
+        app:constraint_referenced_ids="button_correct,button_wrong,text_view_count_down,text_view_moving_text,text_view_fixed" />
 
 
     <androidx.constraintlayout.widget.Group
@@ -64,6 +64,14 @@
         android:layout_height="wrap_content"
         android:visibility="gone"
         app:constraint_referenced_ids="text_view_game_speed,text_view_game_time,number_picker_speed,number_picker_time,button_start_game,text_view_game_info" />
+
+
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/view_group_game_result"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:constraint_referenced_ids="text_view_game_result,button_reset_game" />
 
 
     <com.google.android.material.button.MaterialButton
@@ -118,8 +126,12 @@
         android:id="@+id/text_view_count_down"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textSize="70sp"
+        android:textColor="#3C000000"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/text_view_game_time"
@@ -142,5 +154,27 @@
         app:layout_constraintBottom_toTopOf="@+id/button_start_game"
         app:layout_constraintEnd_toEndOf="@+id/button_start_game"
         app:layout_constraintStart_toStartOf="@+id/button_start_game" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/text_view_game_result"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:layout_marginBottom="20dp"
+        app:layout_constraintBottom_toTopOf="@+id/button_start_game"
+        app:layout_constraintEnd_toEndOf="@+id/button_start_game"
+        app:layout_constraintStart_toStartOf="@+id/button_start_game"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/button_reset_game"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/start_another_test"
+        app:layout_constraintTop_toBottomOf="@+id/text_view_game_result"
+        app:layout_constraintStart_toStartOf="@+id/text_view_game_result"
+        app:layout_constraintEnd_toEndOf="@+id/text_view_game_result"/>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -3,4 +3,5 @@
     <string name="select_game_time">select game time</string>
     <string name="select_game_speed">select game speed</string>
     <string name="start_gameq">start gameQ</string>
+    <string name="start_another_test">start another test</string>
 </resources>

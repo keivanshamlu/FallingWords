@@ -36,7 +36,7 @@ class FallingWordsViewModel(
     val viewState: StateFlow<ViewState>
         get() = _viewState
 
-    val startGameButtonEnable = viewState.combine(allWords){ viewState , allWords ->
+    val startGameButtonEnable = viewState.combine(allWords) { viewState, allWords ->
 
         allWords.isSuccess() && viewState is ViewState.SetUpGame && viewState.gameSpeed != GameSpeed.NOT_SELECTED && viewState.gameTime != GameTime.NOT_SELECTED
     }
@@ -56,22 +56,42 @@ class FallingWordsViewModel(
     fun timerFinished() {
 
 
-    }
-
-    fun animationFinished(){
-
         (viewState.value as? ViewState.Gaming)?.let { lastValue ->
 
-            _viewState.tryEmit(lastValue.copy(currentIndex = lastValue.currentIndex+1))
-            _startAnimEvent.tryEmit(Event(Pair(lastValue.shuffledWords[lastValue.currentIndex+1], lastValue.speed)))
+            _viewState.tryEmit(
+                ViewState.Result(
+                    lastValue.currentIndex + 1,
+                    lastValue.currectAnswers,
+                    lastValue.wrongAnswers
+                )
+            )
         }
     }
 
-    fun startGameClicked(){
+    fun animationFinished() {
 
-        val correctWords = allWords.value.data?:return
+        (viewState.value as? ViewState.Gaming)?.let { lastValue ->
+
+            _viewState.tryEmit(lastValue.copy(currentIndex = lastValue.currentIndex + 1))
+            _startAnimEvent.tryEmit(
+                Event(
+                    Pair(
+                        lastValue.shuffledWords[lastValue.currentIndex + 1],
+                        lastValue.speed
+                    )
+                )
+            )
+        }
+    }
+
+    fun startGameClicked() {
+
+        val correctWords = allWords.value.data ?: return
         val shuffledWords = correctWords.map {
-            if((0..1).random() == 0)  it else it.copy(text_spa = correctWords[(correctWords.indices).random()].text_spa , isCorrect = false)
+            if ((0..1).random() == 0) it.copy(isCorrect = true) else it.copy(
+                text_spa = correctWords[(correctWords.indices).random()].text_spa,
+                isCorrect = false
+            )
         }
         (viewState.value as? ViewState.SetUpGame)?.let {
 
@@ -91,6 +111,7 @@ class FallingWordsViewModel(
             _viewState.tryEmit(lastValue.copy(gameTime = gameTime))
         }
     }
+
     fun speedSelected(gameSpeed: GameSpeed) {
 
 
@@ -100,6 +121,7 @@ class FallingWordsViewModel(
         }
     }
 
+
     //called at the beginning to get all words
     private fun getAllWords() = viewModelScope.launch {
 
@@ -108,7 +130,7 @@ class FallingWordsViewModel(
         }
     }
 
-    fun currectClicked(){
+    fun currectClicked() {
 
         (_viewState.value as? ViewState.Gaming)?.let { lastValue ->
 
@@ -116,7 +138,8 @@ class FallingWordsViewModel(
             addAnswer(answerIsCorrect)
         }
     }
-    fun wrongClicked(){
+
+    fun wrongClicked() {
 
         (_viewState.value as? ViewState.Gaming)?.let { lastValue ->
 
@@ -125,21 +148,51 @@ class FallingWordsViewModel(
         }
     }
 
-    private fun addAnswer(answerIsCorrect: Boolean){
+    private fun addAnswer(answerIsCorrect: Boolean) {
 
         (_viewState.value as? ViewState.Gaming)?.let { lastValue ->
 
-            _viewState.tryEmit(lastValue.copy(currentIndex = lastValue.currentIndex+1 ,
-                currectAnswers = if(answerIsCorrect) lastValue.currectAnswers+1 else lastValue.currectAnswers,
-                wrongAnswes = if(answerIsCorrect) lastValue.wrongAnswes else lastValue.wrongAnswes+1,
-            ))
-            _startAnimEvent.tryEmit(Event(Pair(lastValue.shuffledWords[lastValue.currentIndex+1], lastValue.speed)))
+            _viewState.tryEmit(
+                lastValue.copy(
+                    currentIndex = lastValue.currentIndex + 1,
+                    currectAnswers = if (answerIsCorrect) lastValue.currectAnswers + 1 else lastValue.currectAnswers,
+                    wrongAnswers = if (answerIsCorrect) lastValue.wrongAnswers else lastValue.wrongAnswers + 1,
+                )
+            )
+            _startAnimEvent.tryEmit(
+                Event(
+                    Pair(
+                        lastValue.shuffledWords[lastValue.currentIndex + 1],
+                        lastValue.speed
+                    )
+                )
+            )
+        }
+    }
+
+    fun resetGameClicked() {
+
+        _viewState.tryEmit(ViewState.SetUpGame())
+    }
+
+    fun fragmentResume() {
+
+        (viewState.value as? ViewState.Gaming)?.let { lastValue ->
+
+            _startAnimEvent.tryEmit(
+                Event(
+                    Pair(
+                        lastValue.shuffledWords[lastValue.currentIndex],
+                        lastValue.speed
+                    )
+                )
+            )
         }
     }
 
 }
 
-sealed class ViewState() {
+sealed class ViewState {
 
     data class SetUpGame(
         val gameTime: GameTime = GameTime.NOT_SELECTED,
@@ -147,13 +200,18 @@ sealed class ViewState() {
     ) : ViewState()
 
     data class Gaming(
-        val shuffledWords : List<ResponseWord>,
+        val shuffledWords: List<ResponseWord>,
         val speed: GameSpeed,
         val currentIndex: Int = 0,
         val currectAnswers: Int = 0,
-        val wrongAnswes: Int = 0
+        val wrongAnswers: Int = 0
     ) : ViewState()
-    object Result : ViewState()
+
+    data class Result(
+        val allQuestions: Int,
+        val currectAnswers: Int,
+        val wrongAnswers: Int
+    ) : ViewState()
 }
 
 enum class GameTime(val time: Long, val title: String) {
@@ -165,7 +223,7 @@ enum class GameTime(val time: Long, val title: String) {
 
 enum class GameSpeed(val title: String, val duration: Long) {
     SLOW("slow", 7_000),
-    MEDIUM("medium",5_000),
-    FAST("fast",3_000),
-    NOT_SELECTED("not seleceted",0)
+    MEDIUM("medium", 5_000),
+    FAST("fast", 3_000),
+    NOT_SELECTED("not seleceted", 0)
 }

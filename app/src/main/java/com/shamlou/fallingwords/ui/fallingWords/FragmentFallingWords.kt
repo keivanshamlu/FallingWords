@@ -6,6 +6,8 @@ import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -48,6 +50,15 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        animatorSet.removeAllListeners()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Handler(Looper.getMainLooper()).postDelayed({
+            animatorSet.removeAllListeners()
+            viewModel.fragmentResume()
+        },1000)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -71,8 +82,10 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
         binding.buttonStartGame.setOnClickListener {
             viewModel.startGameClicked()
         }
-        setupTimeNumberPicker()
-        setupSpeedNumberPicker()
+
+        binding.buttonResetGame.setOnClickListener {
+            viewModel.resetGameClicked()
+        }
     }
 
     private fun observeViewModel() {
@@ -94,7 +107,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                     val minutes = (it / 1000).toInt() / 60
                     val seconds = (it / 1000).toInt() % 60
                     val timeLeftFormatted: String =
-                        java.lang.String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+                        java.lang.String.format(Locale.getDefault(), "%02d       %02d", minutes, seconds)
                     binding.textViewCountDown.text = timeLeftFormatted
                 }
             }
@@ -123,6 +136,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                                 .ofFloat(binding.textViewMovingText, "translationY", 0f)
                                 .setDuration(0)
                         )
+
                         animatorSet.addListener(object : Animator.AnimatorListener {
                             override fun onAnimationStart(p0: Animator?) {
                             }
@@ -134,7 +148,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                             }
 
                             override fun onAnimationCancel(p0: Animator?) {
-                                Log.d("TESTEST", "cancle")
+                                animatorSet.removeAllListeners()
                             }
 
                             override fun onAnimationRepeat(p0: Animator?) {
@@ -162,19 +176,18 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
 
                     binding.viewGroupGaming.isVisible = it is ViewState.Gaming
                     binding.viewGroupStartGame.isVisible = it is ViewState.SetUpGame
+                    binding.viewGroupGameResult.isVisible = it is ViewState.Result
                     when (it) {
                         is ViewState.SetUpGame -> {
-
+                            setupTimeNumberPicker(GameTime.values().indexOf(it.gameTime))
+                            setupSpeedNumberPicker(GameSpeed.values().indexOf(it.gameSpeed))
                             binding.textViewGameInfo.text =
                                 "game speed : ${it.gameSpeed.title} \n game time : ${it.gameTime.title}"
                         }
-                        is ViewState.Gaming -> {
-
-
-                        }
                         is ViewState.Result -> {
 
-
+                            binding.textViewGameResult.text =
+                                "all questions : ${it.allQuestions} \n correct answers : ${it.currectAnswers} \n wrong answers : ${it.wrongAnswers}"
                         }
                     }
                 }
@@ -199,7 +212,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
         }.start()
     }
 
-    private fun setupTimeNumberPicker() {
+    private fun setupTimeNumberPicker(pos : Int) {
         val values = GameTime.values().map { it.title }.toTypedArray()
         with(binding.numberPickerTime) {
             minValue = 0
@@ -209,12 +222,12 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
             setOnValueChangedListener { _, _, newVal ->
                 viewModel.timeSelected(GameTime.values()[newVal])
             }
-            value = values.size - 1
+            value = pos
         }
 
     }
 
-    private fun setupSpeedNumberPicker() {
+    private fun setupSpeedNumberPicker(pos : Int) {
         val values = GameSpeed.values().map { it.title }.toTypedArray()
         with(binding.numberPickerSpeed) {
             minValue = 0
@@ -224,7 +237,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
             setOnValueChangedListener { _, _, newVal ->
                 viewModel.speedSelected(GameSpeed.values()[newVal])
             }
-            value = values.size - 1
+            value = pos
         }
 
     }
