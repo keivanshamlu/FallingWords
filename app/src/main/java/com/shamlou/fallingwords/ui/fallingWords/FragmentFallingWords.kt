@@ -3,16 +3,13 @@ package com.shamlou.fallingwords.ui.fallingWords
 import android.animation.Animator
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.animation.addListener
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -56,7 +53,6 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
     override fun onResume() {
         super.onResume()
         Handler(Looper.getMainLooper()).postDelayed({
-            animatorSet.removeAllListeners()
             viewModel.fragmentResume()
         },1000)
     }
@@ -70,34 +66,28 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
 
     private fun setUpView() {
 
-        binding.buttonCorrect.setOnClickListener {
-            animatorSet.cancel()
-            viewModel.currectClicked()
-        }
+        with(binding){
 
-        binding.buttonWrong.setOnClickListener {
-            animatorSet.cancel()
-            viewModel.wrongClicked()
-        }
-        binding.buttonStartGame.setOnClickListener {
-            viewModel.startGameClicked()
-        }
+            buttonCorrect.setOnClickListener {
+                animatorSet.cancel()
+                viewModel.correctClicked()
+            }
 
-        binding.buttonResetGame.setOnClickListener {
-            viewModel.resetGameClicked()
+            buttonWrong.setOnClickListener {
+                animatorSet.cancel()
+                viewModel.wrongClicked()
+            }
+            buttonStartGame.setOnClickListener {
+                viewModel.startGameClicked()
+            }
+
+            buttonResetGame.setOnClickListener {
+                viewModel.resetGameClicked()
+            }
         }
     }
 
     private fun observeViewModel() {
-
-        //gets all words and also have the state of loading, error, success
-        lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.allWords.collect {
-
-                }
-            }
-        }
 
         //observes timeleft and show the last value in UI
         lifecycleScope.launch {
@@ -112,6 +102,9 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                 }
             }
         }
+
+        // observe [startGameButtonEnable] , words should be loaded,
+        // and game speed and game time should be seleccted
         lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.startGameButtonEnable.collect {
@@ -120,15 +113,23 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                 }
             }
         }
+
+        // this will be observe new event every time there
+        // should be new word falling down from top of the screen
+        // starts anim from beginning, [startAnimEvent] is an event,
+        // we update the text views, and play the animation
+        // i used [animatorSet.playSequentially] so view can move back to the top of the view
         lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.startAnimEvent.collect {
                     it?.getContentIfNotHandled()?.let {
 
+                        //update texts
                         binding.textViewMovingText.text = it.first.text_spa
                         binding.textViewFixed.text = it.first.text_eng
 
                         animatorSet.playSequentially(
+                            //if we dont use [- binding.textViewMovingText.height] it will move out of the screen
                             ObjectAnimator
                                 .ofFloat(binding.textViewMovingText, "translationY", binding.root.height.toFloat() - binding.textViewMovingText.height)
                                 .setDuration(it.second.duration),
@@ -137,17 +138,23 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                                 .setDuration(0)
                         )
 
+                        // we add listener so we can find out animation finished or canceled
                         animatorSet.addListener(object : Animator.AnimatorListener {
                             override fun onAnimationStart(p0: Animator?) {
                             }
 
                             override fun onAnimationEnd(p0: Animator?) {
 
+                                // remove listener so we can make sure last
+                                // listeners are not making miss behaviors
                                 animatorSet.removeAllListeners()
+                                // inform view model about finishing animation
                                 viewModel.animationFinished()
                             }
 
                             override fun onAnimationCancel(p0: Animator?) {
+
+                                //when user clicked on correct or wrong button, we remove listeners
                                 animatorSet.removeAllListeners()
                             }
 
@@ -160,6 +167,8 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                 }
             }
         }
+
+        //when user clicks on start game
         lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.startTimerEvent.collect {
@@ -170,15 +179,24 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                 }
             }
         }
+
+        // view state is the single source of truth of the UI of this fragment
+        // we abserve it so we can make diffrent desisions on diffrent states [set up, gaming, result]
         lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.viewState.collect {
 
+                    //load the view group[contains all the views about the state]
                     binding.viewGroupGaming.isVisible = it is ViewState.Gaming
                     binding.viewGroupStartGame.isVisible = it is ViewState.SetUpGame
                     binding.viewGroupGameResult.isVisible = it is ViewState.Result
                     when (it) {
                         is ViewState.SetUpGame -> {
+
+                            // set up pickers for game speed and game time,
+                            // we also send current values position and we
+                            // will set it as the current pos in picker so
+                            // it can survive configure changes
                             setupTimeNumberPicker(GameTime.values().indexOf(it.gameTime))
                             setupSpeedNumberPicker(GameSpeed.values().indexOf(it.gameSpeed))
                             binding.textViewGameInfo.text =
@@ -186,6 +204,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
                         }
                         is ViewState.Result -> {
 
+                            //showing result after game finished in [ViewState.Result] state
                             binding.textViewGameResult.text =
                                 "all questions : ${it.allQuestions} \n correct answers : ${it.currectAnswers} \n wrong answers : ${it.wrongAnswers}"
                         }
@@ -212,6 +231,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
         }.start()
     }
 
+    // set up time picker, pos is default position
     private fun setupTimeNumberPicker(pos : Int) {
         val values = GameTime.values().map { it.title }.toTypedArray()
         with(binding.numberPickerTime) {
@@ -226,7 +246,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
         }
 
     }
-
+    // set up speed picker, pos is default position
     private fun setupSpeedNumberPicker(pos : Int) {
         val values = GameSpeed.values().map { it.title }.toTypedArray()
         with(binding.numberPickerSpeed) {
