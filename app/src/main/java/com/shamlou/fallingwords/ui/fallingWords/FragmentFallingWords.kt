@@ -1,10 +1,15 @@
 package com.shamlou.fallingwords.ui.fallingWords
 
+import android.animation.Animator
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.animation.addListener
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -52,7 +57,10 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
     private fun setUpView() {
 
         binding.buttonCorrect.setOnClickListener {
-            startTimer()
+
+        }
+        binding.buttonStartGame.setOnClickListener {
+            viewModel.startGameClicked()
         }
         setupTimeNumberPicker()
         setupSpeedNumberPicker()
@@ -76,7 +84,8 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
 
                     val minutes = (it / 1000).toInt() / 60
                     val seconds = (it / 1000).toInt() % 60
-                    val timeLeftFormatted: String = java.lang.String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+                    val timeLeftFormatted: String =
+                        java.lang.String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
                     binding.textViewCountDown.text = timeLeftFormatted
                 }
             }
@@ -91,14 +100,64 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
         }
         lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.startAnimEvent.collect {
+                    it?.getContentIfNotHandled()?.let {
+
+                        binding.test.text = it.first.text_spa
+                        binding.testCenter.text = it.first.text_eng
+
+                        val animatorSet = AnimatorSet()
+                        animatorSet.playSequentially(
+                            ObjectAnimator
+                                .ofFloat(binding.test, "translationY", binding.root.height.toFloat() - binding.test.height)
+                                .setDuration(it.second.duration),
+                            ObjectAnimator
+                                .ofFloat(binding.test, "translationY", 0f)
+                                .setDuration(0)
+                        )
+                        animatorSet.addListener(object : Animator.AnimatorListener {
+                            override fun onAnimationStart(p0: Animator?) {
+                            }
+
+                            override fun onAnimationEnd(p0: Animator?) {
+
+
+                                viewModel.animationFinished()
+                            }
+
+                            override fun onAnimationCancel(p0: Animator?) {
+                            }
+
+                            override fun onAnimationRepeat(p0: Animator?) {
+                            }
+
+                        })
+                        animatorSet.start()
+                    }
+                }
+            }
+        }
+        lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.startTimerEvent.collect {
+                    it?.getContentIfNotHandled()?.let {
+
+                        startTimer(it)
+                    }
+                }
+            }
+        }
+        lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.viewState.collect {
 
                     binding.viewGroupGaming.isVisible = it is ViewState.Gaming
-                    binding.viewGroupStartGame.isVisible = it is ViewState
-                    when(it){
+                    binding.viewGroupStartGame.isVisible = it is ViewState.SetUpGame
+                    when (it) {
                         is ViewState.SetUpGame -> {
 
-                            binding.textViewGameInfo.text = "game speed : ${it.gameSpeed.title} \n game time : ${it.gameTime.title}"
+                            binding.textViewGameInfo.text =
+                                "game speed : ${it.gameSpeed.title} \n game time : ${it.gameTime.title}"
                         }
                         is ViewState.Gaming -> {
 
@@ -116,9 +175,9 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
 
     //starts the counter with value of [timeLeft] in viewModel
     //i keep the time in viewmodel so it can survive configure changes
-    private fun startTimer() {
+    private fun startTimer(time: Long) {
 
-        object : CountDownTimer(viewModel.timeLeft.value, 1000) {
+        object : CountDownTimer(time, 1000) {
             override fun onTick(millisUntilFinished: Long) {
 
                 viewModel.setTimeLeft(millisUntilFinished)
@@ -133,7 +192,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
 
     private fun setupTimeNumberPicker() {
         val values = GameTime.values().map { it.title }.toTypedArray()
-        with(binding.numberPickerTime){
+        with(binding.numberPickerTime) {
             minValue = 0
             maxValue = values.size - 1
             displayedValues = values
@@ -141,13 +200,14 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
             setOnValueChangedListener { _, _, newVal ->
                 viewModel.timeSelected(GameTime.values()[newVal])
             }
-            value = values.size-1
+            value = values.size - 1
         }
 
     }
+
     private fun setupSpeedNumberPicker() {
         val values = GameSpeed.values().map { it.title }.toTypedArray()
-        with(binding.numberPickerSpeed){
+        with(binding.numberPickerSpeed) {
             minValue = 0
             maxValue = values.size - 1
             displayedValues = values
@@ -155,7 +215,7 @@ class FragmentFallingWords : Fragment(R.layout.fragment_falling_words) {
             setOnValueChangedListener { _, _, newVal ->
                 viewModel.speedSelected(GameSpeed.values()[newVal])
             }
-            value = values.size-1
+            value = values.size - 1
         }
 
     }

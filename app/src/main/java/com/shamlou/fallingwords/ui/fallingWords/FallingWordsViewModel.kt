@@ -4,11 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shamlou.fallingwords.data.models.ResponseWord
 import com.shamlou.fallingwords.repo.WordsRepository
+import com.shamlou.fallingwords.utility.Event
 import com.shamlou.fallingwords.utility.Resource
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 const val START_TIME_IN_MILLIS: Long = 50_000
@@ -25,6 +23,14 @@ class FallingWordsViewModel(
     private val _timeLeft = MutableStateFlow(START_TIME_IN_MILLIS)
     val timeLeft: StateFlow<Long>
         get() = _timeLeft
+
+    private val _startTimerEvent = MutableSharedFlow<Event<Long>?>(1)
+    val startTimerEvent: SharedFlow<Event<Long>?>
+        get() = _startTimerEvent
+
+    private val _startAnimEvent = MutableSharedFlow<Event<Pair<ResponseWord, GameSpeed>>?>(1)
+    val startAnimEvent: SharedFlow<Event<Pair<ResponseWord, GameSpeed>>?>
+        get() = _startAnimEvent
 
     private val _viewState = MutableStateFlow<ViewState>(ViewState.SetUpGame())
     val viewState: StateFlow<ViewState>
@@ -52,6 +58,29 @@ class FallingWordsViewModel(
 
     }
 
+    fun animationFinished(){
+
+        (viewState.value as? ViewState.Gaming)?.let { lastValue ->
+
+            _viewState.tryEmit(lastValue.copy(currentIndex = lastValue.currentIndex+1))
+            _startAnimEvent.tryEmit(Event(Pair(lastValue.shuffledWords[lastValue.currentIndex+1], lastValue.speed)))
+        }
+    }
+
+    fun startGameClicked(){
+
+        val correctWords = allWords.value.data?:return
+        val shuffledWords = correctWords.map {
+            if((0..1).random() == 0)  it else it.copy(text_spa = correctWords[(correctWords.indices).random()].text_spa , isCorrect = false)
+        }
+        (viewState.value as? ViewState.SetUpGame)?.let {
+
+
+            _viewState.tryEmit(ViewState.Gaming(shuffledWords, it.gameSpeed))
+            _startTimerEvent.tryEmit(Event(timeLeft.value))
+            _startAnimEvent.tryEmit(Event(Pair(shuffledWords[0], it.gameSpeed)))
+        }
+    }
 
     fun timeSelected(gameTime: GameTime) {
 
@@ -87,7 +116,11 @@ sealed class ViewState() {
         val gameSpeed: GameSpeed = GameSpeed.NOT_SELECTED
     ) : ViewState()
 
-    object Gaming : ViewState()
+    data class Gaming(
+        val shuffledWords : List<ResponseWord>,
+        val speed: GameSpeed,
+        val currentIndex: Int = 0
+    ) : ViewState()
     object Result : ViewState()
 }
 
@@ -98,9 +131,9 @@ enum class GameTime(val time: Long, val title: String) {
     NOT_SELECTED(0, "not seleceted")
 }
 
-enum class GameSpeed(val title: String) {
-    SLOW("slow"),
-    MEDIUM("medium"),
-    FAST("fast"),
-    NOT_SELECTED("not seleceted")
+enum class GameSpeed(val title: String, val duration: Long) {
+    SLOW("slow", 7_000),
+    MEDIUM("medium",5_000),
+    FAST("fast",3_000),
+    NOT_SELECTED("not seleceted",0)
 }
